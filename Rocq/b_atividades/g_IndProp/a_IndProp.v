@@ -2,6 +2,9 @@
 
 Set Warnings "-notation-overridden".
 Require Import Nat.
+Require Import Coq.Lists.List.
+Import ListNotations.
+Require Import LFPTBR.b_Inducao.a_Inducao.
 
 (******************* Proposições Indutivamente Definidas *********************)
 
@@ -158,7 +161,7 @@ Conjecture collatz : forall n, n <> 0 -> Collatz_vale_para n.
 teórico dos números! Mas não perca muito tempo com ela — ela está em aberto 
 desde 1937. *)
 
-(**************** Exemplo: Relação binária para comparar números ****************)
+(*** Exemplo: Relação binária para comparar números ***)
 
 (* Uma relação binária em um conjunto X tem o tipo Rocq X -> X -> Prop. Esta é 
 uma família de proposições parametrizada por dois elementos de X — ou seja, uma 
@@ -194,7 +197,7 @@ Example le_3_5 : 3 <= 5.
 Proof.
   apply le_S. apply le_S. apply le_n. Qed.
 
-(*************************** Exemplo: Fecho transitivo **************************)
+(*** Exemplo: Fecho transitivo ***)
 
 (* Outro exemplo: O fecho transitivo de uma relação R é a menor relação que 
 contém R e que é transitiva. Isso pode ser definido pelas duas regras seguintes: 
@@ -262,7 +265,7 @@ O fecho transitivo de uma relação binária não pode, em geral, ser expresso e
 lógica de primeira ordem. A lógica do Rocq é, no entanto, muito mais poderosa e 
 pode definir facilmente tais relações indutivas. *)
 
-(********************* Exemplo: Fecho Reflexivo e Transitivo ********************)
+(*** Exemplo: Fecho Reflexivo e Transitivo ***)
 
 (* Como outro exemplo, o fecho reflexivo e transitivo de uma relação R é a menor 
 relação que contém R e que é reflexiva e transitiva. Isso pode ser definido pelas 
@@ -303,7 +306,7 @@ fecho reflexivo e transitivo para definir uma relação de múltiplos passos de
 Collatz (cms), expressando que um número n alcança outro número m em zero ou mais 
 passos de Collatz *)
 
-Definition cms n m := clos_refl_trans cs n m.
+Definition cms n m := fecho_refl_trans cs n m.
 Conjecture collatz' : forall n, n <> 0 -> cms n 1.
 
 (* Esta relação cms definida em termos de fecho_refl_trans permite derivações mais 
@@ -321,3 +324,286 @@ cms 16 8           cms 8 4              cms 4 2           cms 2 1
 *)
 
 (* Exercício *)
+(* Como você modificaria a definição de fecho_refl_trans acima para definir 
+o fecho reflexivo, simétrico e transitivo? 
+
+Resposta:
+Modificaria com uma regra a mais:
+
+fecho_trans_refl_sim R y x
+--------------------------- rts_sim
+fecho_trans_refl_sim R x y
+
+Ficaria assim:
+Inductive fecho_refl_trans_sim {X: Type} (R: X->X->Prop) : X->X->Prop :=
+  | rts_passo (x y : X) :
+      R x y ->
+      fecho_refl_trans_sim R x y
+  | rts_refl (x : X) :
+      fecho_refl_trans_sim R x x
+  | rts_trans (x y z : X) :
+      fecho_refl_trans_sim R x y ->
+      fecho_refl_trans_sim R y z ->
+      fecho_refl_trans_sim R x z
+  | rts_sim (x y : X) : fecho_refl_trans_sim R y x -> 
+      fecho_refl_trans_sim R x y. *)
+
+(*** Exemplo: Permutações ***)
+
+(* O conceito matemático familiar de permutação também possui uma formulação 
+elegante como uma relação indutiva. Por simplicidade, vamos nos focar em 
+permutações de listas com exatamente três elementos.
+
+Podemos definir tais permutações pelas seguintes regras: 
+
+   	                  
+                ------------------------ (perm3_troca12) )
+                Perm3 [a;b;c] [b;a;c] 	
+     
+                ------------------------- (perm3_troca23)
+                Perm3 [a;b;c] [a;c;b] 	
+
+               Perm3 l1 l2       Perm3 l2 l3 	
+               ------------------------------ (perm3_trans)  
+                      Perm3 l1 l3
+
+Por exemplo, podemos derivar Perm3 [1;2;3] [3;2;1] da seguinte forma:
+
+--------(perm_troca12)  ---------------------(perm_troca23)
+    Perm3 [1;2;3] [2;1;3]  Perm3 [2;1;3] [2;3;1]
+    ------------------------------(perm_trans)  ------------(perm_troca12)
+        Perm3 [1;2;3] [2;3;1]                   Perm [2;3;1] [3;2;1]
+        -----------------------------------------------------(perm_trans)
+                          Perm3 [1;2;3] [3;2;1]
+
+Esta definição diz:
+
+    - Se l2 pode ser obtida a partir de l1 trocando o primeiro e o segundo 
+    elementos, então l2 é uma permutação de l1.
+
+    - Se l2 pode ser obtida a partir de l1 trocando o segundo e o terceiro 
+    elementos, então l2 é uma permutação de l1.
+
+   - Se l2 é uma permutação de l1 e l3 é uma permutação de l2, então l3 é 
+   uma permutação de l1.
+
+No Rocq, Perm3 recebe a seguinte definição indutiva: *)
+
+Inductive Perm3 {X : Type} : list X -> list X -> Prop :=
+  | perm3_troca12 (a b c : X) :
+      Perm3 [a;b;c] [b;a;c]
+  | perm3_troca23 (a b c : X) :
+      Perm3 [a;b;c] [a;c;b]
+  | perm3_trans (l1 l2 l3 : list X) :
+      Perm3 l1 l2 -> Perm3 l2 l3 -> Perm3 l1 l3.
+
+(* Exercício*)
+(* De acordo com esta definição, [1;2;3] é uma permutação de si mesmo? 
+
+Resposta: Sim *)
+
+(*** Exemplo: Paridade (mais uma vez) ***)
+
+(* Já vimos duas maneiras de enunciar a proposição de que um número n é par: Podemos dizer
+
+(1) even n = true (usando a função booleana recursiva even), ou
+
+(2) ∃ k, n = double k (usando um quantificador existencial).
+
+Uma terceira possibilidade, que usaremos como um exemplo contínuo simples 
+neste capítulo, é dizer que um número é par se pudermos estabelecer sua 
+paridade a partir das seguintes duas regras: 
+
+                      -------------	(ev_0)  
+                          ev 0 	
+        
+                          ev n 	
+                      ------------- (ev_SS)  
+                       ev (S (S n)) 	
+
+Intuitivamente, essas regras dizem que:
+
+    - O número 0 é par.
+
+    - Se n é par, então S (S n) é par.
+
+(Definir a paridade dessa forma pode parecer um pouco confuso, já que já v
+imos duas maneiras perfeitamente boas de fazer isso. Ela serve como um 
+exemplo prático conveniente por ser simples e compacta, mas logo 
+retornaremos aos exemplos mais convincentes citados acima.)
+
+Para ilustrar como essa nova definição de paridade funciona, vamos imaginar 
+usá-la para mostrar que 4 é par:
+
+                           ---- (ev_0)
+                           ev 0
+                       ------------ (ev_SS)
+                       ev (S (S 0))
+                   -------------------- (ev_SS)
+                   ev (S (S (S (S 0))))
+
+Em palavras, para mostrar que 4 é par, pela regra ev_SS, basta mostrar que 2 
+é par. Isso, por sua vez, é garantido novamente pela regra ev_SS, desde que 
+possamos mostrar que 0 é par. Mas esse último fato decorre diretamente da 
+regra ev_0.
+
+Podemos traduzir a definição informal de paridade acima em uma declaração 
+Inductive formal, onde cada ''forma como um número pode ser par'' 
+corresponde a um construtor separado: *)
+
+Inductive ev : nat -> Prop :=
+  | ev_0 : ev 0
+  | ev_SS (n : nat) (H : ev n) : ev (S (S n)).
+
+(* Tais definições são diferentemente interessantes em comparação aos usos 
+anteriores de Inductive para definir tipos de dados indutivos como nat ou 
+list. Por um lado, não estamos definindo um Tipo (como nat) ou uma função 
+que produz um Tipo (como list), mas sim uma função de nat para Prop — ou 
+seja, uma propriedade de números. Mas o que há de realmente novo é que, como 
+o argumento nat de ev aparece à direita dos dois-pontos na primeira linha, 
+ele tem permissão para assumir valores diferentes nos tipos de construtores 
+diferentes: 0 no tipo de ev_0 e S (S n) no tipo de ev_SS. Consequentemente, 
+o tipo de cada construtor deve ser especificado explicitamente (após os 
+dois-pontos), e o tipo de cada construtor deve ter a forma ev n para algum 
+número natural n.
+
+Em contraste, lembre-se da definição de list:
+ Inductive list (X:Type) : Type :=
+      | nil
+      | cons (x : X) (l : list X).
+  
+ou (equivalentemente, mas de forma mais explícita):
+  Inductive list (X:Type) : Type :=
+  | nil                       : list X
+  | cons (x : X) (l : list X) : list X.
+
+Esta definição introduz o parâmetro X globalmente, à esquerda dos 
+dois-pontos, forçando o resultado de nil e cons a ser o mesmo tipo (ou seja, 
+list X). Mas se tivéssemos tentado trazer nat para a esquerda dos dois-pontos 
+ao definir ev, teríamos visto um erro: *)
+ 
+Fail Inductive wrong_ev (n : nat) : Prop :=
+  | wrong_ev_0 : wrong_ev 0
+  | wrong_ev_SS (H: wrong_ev n) : wrong_ev (S (S n)).
+(* ===> Error: Last occurrence of "wrong_ev" must have "n" as 1st
+        argument in "wrong_ev 0". *)
+
+(* Em uma definição indutiva, um argumento para o construtor de tipo à 
+esquerda dos dois-pontos é chamado de ''parâmetro'', enquanto um argumento à 
+direita é chamado de ''índice'' ou ''anotação''.
+
+Por exemplo, em Inductive list (X : Type) := ..., o X é um parâmetro, 
+enquanto em Inductive ev : nat → Prop := ..., o argumento nat sem nome é um 
+índice.
+
+Podemos pensar na definição indutiva de ev como definindo uma propriedade do 
+Rocq ev : nat → Prop, juntamente com dois 'construtores de evidência'': *)
+
+Check ev_0 : ev 0.
+Check ev_SS : forall (n : nat), ev n -> ev (S (S n)).
+
+(* De fato, o Rocq também aceita a seguinte definição equivalente de ev: *)
+
+Module EvExperimental.
+Inductive ev : nat -> Prop :=
+  | ev_0 : ev 0
+  | ev_SS : forall (n : nat), ev n -> ev (S (S n)).
+End EvExperimental.
+
+(* Esses construtores de evidência podem ser pensados como ''evidência 
+primitiva de paridade'', e eles podem ser usados mais tarde exatamente como 
+teoremas provados. Em particular, podemos usar a tática apply do Rocq com os 
+nomes dos construtores para obter evidência de ev para números específicos... *)
+
+Theorem ev_4 : ev 4.
+Proof. apply ev_SS. apply ev_SS. apply ev_0. Qed.
+
+(* ... ou podemos usar a sintaxe de aplicação de função para combinar 
+vários construtores: *)
+
+Theorem ev_4' : ev 4.
+Proof. apply (ev_SS 2 (ev_SS 0 ev_0)). Qed.
+
+(* Dessa forma, também podemos provar teoremas que possuem hipóteses 
+envolvendo ev. *)
+
+Theorem ev_mais4 : forall n, ev n -> ev (4 + n).
+Proof.
+  intros n. simpl. intros Hn. apply ev_SS. apply ev_SS. apply Hn.
+Qed.
+
+(* Exercício *)
+Theorem ev_double : forall n,
+  ev (Nat.double n).
+Proof.
+    intros n. unfold Nat.double. induction n as [ | n' IHn'].
+    - apply ev_0.
+    - simpl. rewrite <- mais_n_Sm. apply ev_SS. apply IHn'.
+    Qed.
+
+(**************** Construindo evidências para permutações *****************)
+
+(* Da mesma forma, podemos aplicar os construtores de evidência para obter 
+evidências de Perm3 [1;2;3] [3;2;1]: *)
+
+Lemma Perm3_rev : Perm3 [1;2;3] [3;2;1].
+Proof.
+  apply perm3_trans with (l2:=[2;3;1]).
+  - apply perm3_trans with (l2:=[2;1;3]).
+    + apply perm3_troca12.
+    + apply perm3_troca23.
+  - apply perm3_troca12.
+Qed.
+
+(* E, mais uma vez, podemos usar de forma equivalente a sintaxe de aplicação 
+de função para combinar vários construtores. (Note que o verificador de 
+tipos do Rocq pode inferir não apenas os tipos, mas também nats e listas, 
+quando eles forem claros a partir do contexto.) *)
+
+Lemma Perm3_rev' : Perm3 [1;2;3] [3;2;1].
+Proof.
+  apply (perm3_trans _ [2;3;1] _
+          (perm3_trans _ [2;1;3] _
+            (perm3_troca12 _ _ _)
+            (perm3_troca23 _ _ _))
+          (perm3_troca12 _ _ _)).
+Qed.
+
+(* Portanto, as árvores de derivação informais que desenhamos acima não 
+estão muito distantes do que está acontecendo formalmente. Formalmente, 
+estamos usando os construtores de evidência para construir árvores de 
+evidência, de forma semelhante às árvores finitas que construímos usando os 
+construtores de tipos de dados como nat, list, árvores binárias, etc. *)
+
+(* Exercício *)
+
+Lemma Perm3_ex1 : Perm3 [1;2;3] [2;3;1].
+Proof.
+  apply perm3_trans with (l2 := [2;1;3]). 
+  - apply perm3_troca12.
+  - apply perm3_troca23.
+  Qed.
+
+(* O mesmo, só que agora usando a sintaxe de aplicação de função, para testar *)
+Lemma Perm3_ex1' : Perm3 [1;2;3] [2;3;1].
+Proof.
+  apply (perm3_trans _ [2;1;3] _ (perm3_troca12 _ _ _) (perm3_troca23 _ _ _)). 
+  Qed.
+
+
+Lemma Perm3_refl : forall (X : Type) (a b c : X),
+  Perm3 [a;b;c] [a;b;c].
+Proof.
+  intros X a  b c. apply perm3_trans with (l2 := [a;c;b]).
+  - apply perm3_troca23.
+  - apply perm3_troca23.
+  Qed.
+
+Lemma Perm3_refl' : forall (X : Type) (a b c : X),
+  Perm3 [a;b;c] [a;b;c].
+Proof.
+  intros X a  b c.
+   apply (perm3_trans _ [a;c;b] _ (perm3_troca23 _ _ _)(perm3_troca23 _ _ _)).
+  Qed.
+  
+(*********************** Usando evidências em provas ***********************)
